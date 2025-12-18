@@ -32,7 +32,7 @@ const products = [
     id: 4,
     name: "Yogurt 1kg",
     price: 85,
-    image: "/youqurt.png",
+    image: "/yougurt.png",
     stock: 12,
     category: "Dairy",
     description: "Fresh curd, 1kg packet"
