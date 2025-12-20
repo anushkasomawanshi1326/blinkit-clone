@@ -108,6 +108,116 @@
 #               body: comment
 #             });
 
+# name: Auto Test Generation
+
+# on:
+#   pull_request:
+#     paths:
+#       - 'src/**/*.jsx'
+#       - 'src/**/*.tsx'
+
+# jobs:
+#   generate-tests:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # 1️⃣ Checkout React project
+#       - name: Checkout React project
+#         uses: actions/checkout@v3
+#         with:
+#           fetch-depth: 0
+
+#       # 2️⃣ Setup Node (for React tests)
+#       - name: Set up Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: '18'
+
+#       - name: Install npm dependencies
+#         run: npm install --legacy-peer-deps
+
+#       # 3️⃣ Get changed JSX/TSX files
+#       - name: Get changed files
+#         id: changed-files
+#         run: |
+#           FILES=$(git diff --name-only \
+#             ${{ github.event.pull_request.base.sha }} \
+#             ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' | xargs)
+#           echo "files=$FILES" >> $GITHUB_OUTPUT
+
+#       # 4️⃣ Checkout PRIVATE UTG repo using PAT
+#       - name: Checkout UnitTestGenerationSystem (PRIVATE)
+#         if: steps.changed-files.outputs.files != ''
+#         uses: actions/checkout@v3
+#         with:
+#           repository: prakalps/UnitTestGenerationSystem
+#           token: ${{ secrets.GH_TOKEN }}
+#           path: utg
+
+#       # 5️⃣ Setup Python for UTG
+#       - name: Set up Python
+#         if: steps.changed-files.outputs.files != ''
+#         uses: actions/setup-python@v4
+#         with:
+#           python-version: '3.10'
+
+#       - name: Install UTG dependencies
+#         if: steps.changed-files.outputs.files != ''
+#         run: |
+#           pip install openai python-dotenv
+
+#       # 6️⃣ Run UTG test generation
+#       - name: Generate tests using UTG
+#         if: steps.changed-files.outputs.files != ''
+#         env:
+#           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+#         run: |
+#           python utg/scripts/agentic_pr_generator.py \
+#             ${{ steps.changed-files.outputs.files }}
+
+#       # 7️⃣ Run React tests
+#       - name: Run generated tests
+#         run: npm test -- --coverage
+
+#       # 8️⃣ Commit generated tests back to PR branch (FIXED)
+#       - name: Commit generated tests
+#         run: |
+#           git config --global user.name 'github-actions[bot]'
+#           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+#           git add .
+#           git commit -m "chore: add agentic generated tests [skip ci]" || echo "No changes"
+#           git push origin HEAD:${{ github.head_ref }}
+
+#       # 9️⃣ Comment PR with results
+#       - name: Comment PR with results
+#         uses: actions/github-script@v6
+#         if: always()
+#         with:
+#           script: |
+#             const fs = require('fs');
+#             const path = 'src/logs/pr_test_generation.json';
+#             if (!fs.existsSync(path)) return;
+
+#             const results = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+#             const comment = `## 🤖 Agentic Test Generation Results
+
+#             **Files Processed:** ${results.filesProcessed}
+#             **Tests Generated:** ${results.testsGenerated}
+#             **Tests Passed:** ${results.testsPassed} ✅
+
+#             ### 💰 Cost Report
+#             - **Total Cost:** $${results.cost_report.total_cost}
+#             - **Total Tokens:** ${results.cost_report.total_tokens}
+#             `;
+
+#             github.rest.issues.createComment({
+#               issue_number: context.issue.number,
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               body: comment
+#             });
+
 name: Auto Test Generation
 
 on:
@@ -179,7 +289,7 @@ jobs:
       - name: Run generated tests
         run: npm test -- --coverage
 
-      # 8️⃣ Commit generated tests back to PR branch (FIXED)
+      # 8️⃣ Commit generated tests back to PR branch
       - name: Commit generated tests
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -188,7 +298,7 @@ jobs:
           git commit -m "chore: add agentic generated tests [skip ci]" || echo "No changes"
           git push origin HEAD:${{ github.head_ref }}
 
-      # 9️⃣ Comment PR with results
+      # 9️⃣ Comment PR with results (SAFE GUARDED)
       - name: Comment PR with results
         uses: actions/github-script@v6
         if: always()
@@ -196,19 +306,27 @@ jobs:
           script: |
             const fs = require('fs');
             const path = 'src/logs/pr_test_generation.json';
-            if (!fs.existsSync(path)) return;
+
+            if (!fs.existsSync(path)) {
+              console.log("UTG results file not found, skipping comment.");
+              return;
+            }
 
             const results = JSON.parse(fs.readFileSync(path, 'utf8'));
 
+            const costReport = results.cost_report || {};
+            const totalCost = costReport.total_cost ?? "N/A";
+            const totalTokens = costReport.total_tokens ?? "N/A";
+
             const comment = `## 🤖 Agentic Test Generation Results
 
-            **Files Processed:** ${results.filesProcessed}
-            **Tests Generated:** ${results.testsGenerated}
-            **Tests Passed:** ${results.testsPassed} ✅
+            **Files Processed:** ${results.filesProcessed ?? "N/A"}
+            **Tests Generated:** ${results.testsGenerated ?? "N/A"}
+            **Tests Passed:** ${results.testsPassed ?? "N/A"} ✅
 
             ### 💰 Cost Report
-            - **Total Cost:** $${results.cost_report.total_cost}
-            - **Total Tokens:** ${results.cost_report.total_tokens}
+            - **Total Cost:** ${totalCost}
+            - **Total Tokens:** ${totalTokens}
             `;
 
             github.rest.issues.createComment({
