@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "jest"
+    "test": "jest",
+    "utg:prep": "node scripts/prepare-utg.js",
+    "utg:run": "npm run utg:prep && node ../utg/index.js"
   },
 
   "dependencies": {
@@ -29,6 +31,13 @@
     "@testing-library/jest-dom": "^6.2.0",
     "babel-jest": "^29.7.0",
     "@babel/preset-env": "^7.23.5",
-    "@babel/preset-react": "^7.23.3"
+    "@babel/preset-react": "^7.23.3",
+    "identity-obj-proxy": "^3.0.0"
+  },
+
+  "jest": {
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+    }
   }
 }
