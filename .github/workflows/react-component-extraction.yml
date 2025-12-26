@@ -1,0 +1,123 @@
+name: React Component Extraction (Schema Generation)
+
+on:
+  pull_request:
+    paths:
+      - "src/**/*.jsx"
+      - "src/**/*.tsx"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  extract-react-schema:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ============================================================
+      # STEP 0: CHECKOUT REACT REPOSITORY
+      # ============================================================
+      - name: Checkout React repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      # ============================================================
+      # STEP 1: SETUP NODE ENVIRONMENT
+      # ============================================================
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # ============================================================
+      # STEP 2: DETECT CHANGED REACT COMPONENT FILES
+      # ============================================================
+      - name: Detect changed JSX / TSX files
+        id: changed-files
+        run: |
+          echo "🔍 Detecting changed React components..."
+
+          FILES=$(git diff --name-only \
+            ${{ github.event.pull_request.base.sha }} \
+            ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' || true)
+
+          echo "Changed files:"
+          echo "$FILES"
+
+          FILES_SINGLE_LINE=$(echo "$FILES" | tr '\n' ' ')
+          echo "files=$FILES_SINGLE_LINE" >> $GITHUB_OUTPUT
+
+      # ============================================================
+      # STEP 3: RUN COMPONENT EXTRACTION (YOUR EXISTING CODE)
+      # ============================================================
+      - name: Run component analysis & extraction
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          echo "🚀 Running React component extractor..."
+          echo "Files under analysis:"
+          echo "${{ steps.changed-files.outputs.files }}"
+
+          # Ensure output directory exists
+          mkdir -p context
+
+          # Run YOUR extractor entry file
+          node scripts/extractor/index.js
+
+      # ============================================================
+      # STEP 4: DISPLAY GENERATED SCHEMA (VISIBILITY)
+      # ============================================================
+      - name: Display generated schema
+        if: steps.changed-files.outputs.files != ''
+        run: |
+          echo "📦 Generated React Component Schema:"
+          cat context/react-component-schema.json
+
+      # ============================================================
+      # STEP 5: UPLOAD SCHEMA AS ARTIFACT
+      # ============================================================
+      - name: Upload schema artifact
+        if: steps.changed-files.outputs.files != ''
+        uses: actions/upload-artifact@v3
+        with:
+          name: react-component-schema
+          path: context/react-component-schema.json
+
+            # ============================================================
+      # STEP 6: COMMENT PR WITH EXTRACTION SUMMARY
+      # ============================================================
+      - name: Comment PR with extraction summary
+        if: steps.changed-files.outputs.files != ''
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require("fs");
+
+            const schemaPath = "context/react-component-schema.json";
+
+            if (!fs.existsSync(schemaPath)) {
+              console.log("Schema not found. Skipping PR comment.");
+              return;
+            }
+
+            const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+
+            let body = "## 🧩 React Component Extraction Completed\n\n";
+            body += "**Component Name:** " + (schema.componentName || "N/A") + "\n\n";
+            body += "### 📦 Extracted Signals\n";
+            body += "- **Props:** " + ((schema.props || []).map(p => p.name).join(", ") || "None") + "\n";
+            body += "- **Hooks:** " + ((schema.hooks || []).join(", ") || "None") + "\n";
+            body += "- **Child Components:** " + ((schema.children || []).join(", ") || "None") + "\n";
+            body += "- **Related Files:** " + ((schema.relatedFiles || []).join(", ") || "None") + "\n\n";
+            body += "✅ Schema successfully generated and stored.";
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
