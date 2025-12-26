@@ -19,7 +19,7 @@ jobs:
       # STEP 0: CHECKOUT REACT REPOSITORY
       # ============================================================
       - name: Checkout React repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -27,7 +27,7 @@ jobs:
       # STEP 1: SETUP NODE ENVIRONMENT
       # ============================================================
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
 
@@ -62,10 +62,7 @@ jobs:
           echo "Files under analysis:"
           echo "${{ steps.changed-files.outputs.files }}"
 
-          # Ensure output directory exists
           mkdir -p context
-
-          # Run YOUR extractor entry file
           node scripts/extractor/index.js
 
       # ============================================================
@@ -82,12 +79,12 @@ jobs:
       # ============================================================
       - name: Upload schema artifact
         if: steps.changed-files.outputs.files != ''
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: react-component-schema
           path: context/react-component-schema.json
 
-            # ============================================================
+      # ============================================================
       # STEP 6: COMMENT PR WITH EXTRACTION SUMMARY
       # ============================================================
       - name: Comment PR with extraction summary
