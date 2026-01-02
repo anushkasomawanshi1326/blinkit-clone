@@ -229,7 +229,6 @@
 #         if: steps.changed-files.outputs.files != ''
 #         run: node scripts/comment-pr.js
 
-
 name: React Component Extraction + UTG Context Generation
 
 on:
@@ -313,8 +312,8 @@ jobs:
             exit 1
           fi
 
-          if [ ! -f "context/utg-prompt.json" ]; then
-            echo "❌ utg-prompt.json not found"
+          if [ ! -f "context/utg-prompt.txt" ]; then
+            echo "❌ utg-prompt.txt not found"
             exit 1
           fi
 
@@ -339,7 +338,7 @@ jobs:
         run: |
           echo "🤖 UTG Prompt (Schema + FULL Source Code)"
           echo "-----------------------------------"
-          cat context/utg-prompt.json
+          cat context/utg-prompt.txt
           echo "-----------------------------------"
 
       # =====================================================
@@ -352,7 +351,7 @@ jobs:
           name: react-context-artifacts
           path: |
             context/react-component-schema.json
-            context/utg-prompt.json
+            context/utg-prompt.txt
 
       # =====================================================
       # STEP 8 — Comment PR with Extraction Summary
