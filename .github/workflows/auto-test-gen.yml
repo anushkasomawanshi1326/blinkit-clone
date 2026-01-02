@@ -461,7 +461,6 @@
 #               body: comment
 #             });
 
-
 name: Auto Test Generation
 
 on:
@@ -517,7 +516,7 @@ jobs:
       - name: Validate UTG prompt
         if: steps.changed-files.outputs.files != ''
         run: |
-          if [ ! -f "context/utg-prompt.json" ]; then
+          if [ ! -f "context/utg-prompt.txt" ]; then
             echo "❌ UTG prompt not found. Extraction step may have failed."
             exit 1
           fi
@@ -541,7 +540,7 @@ jobs:
         if: steps.changed-files.outputs.files != ''
         run: |
           mkdir -p utg/context
-          cp context/utg-prompt.json utg/context/utg-prompt.json
+          cp context/utg-prompt.txt utg/context/utg-prompt.txt
           echo "✅ UTG prompt copied to UTG repo"
 
       # =====================================================
@@ -566,7 +565,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          python utg/scripts/pr_test_generator.py utg/context/utg-prompt.json
+          python utg/scripts/pr_test_generator.py utg/context/utg-prompt.txt
 
       # =====================================================
       # 9️⃣ Run React tests
