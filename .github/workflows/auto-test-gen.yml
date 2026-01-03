@@ -505,7 +505,6 @@ jobs:
 
       # =====================================================
       # STEP 3 — Detect ALL changed JSX/TSX files
-      # (Handles multiple files correctly)
       # =====================================================
       - name: Detect changed React files
         id: changed-files
@@ -524,7 +523,6 @@ jobs:
 
       # =====================================================
       # STEP 4 — Run React Context Extraction
-      # (Your existing extractor logic)
       # =====================================================
       - name: Run React context extraction
         if: steps.changed-files.outputs.files != ''
@@ -533,41 +531,37 @@ jobs:
           mkdir -p context
           node scripts/extractor/index.js
           echo "✅ UTG prompt generated"
+
       # =====================================================
-      # STEP 5 — Append FULL SOURCE CODE to UTG Prompt (CRITICAL)
-      # THIS is the missing piece earlier
+      # STEP 5 — Append FULL SOURCE CODE to UTG Prompt (FIXED)
       # =====================================================
       - name: Append full source code to UTG prompt
         if: steps.changed-files.outputs.files != ''
         run: |
           PROMPT_FILE="context/utg-prompt.txt"
+          FILE_LIST="context/changed-files.txt"
 
-          echo "" >> $PROMPT_FILE
-          echo "====================================" >> $PROMPT_FILE
-          echo "📦 FULL SOURCE CODE CONTEXT" >> $PROMPT_FILE
-          echo "====================================" >> $PROMPT_FILE
+          echo "📄 Writing changed files list"
+          echo "${{ steps.changed-files.outputs.files }}" > "$FILE_LIST"
 
-          for file in ${{ steps.changed-files.outputs.files }}; do
+          echo "" >> "$PROMPT_FILE"
+          echo "====================================" >> "$PROMPT_FILE"
+          echo "📦 FULL SOURCE CODE CONTEXT" >> "$PROMPT_FILE"
+          echo "====================================" >> "$PROMPT_FILE"
+
+          while IFS= read -r file; do
             if [ -f "$file" ]; then
-              echo "" >> $PROMPT_FILE
-              echo "------------------------------------" >> $PROMPT_FILE
-              echo "📄 FILE: $file" >> $PROMPT_FILE
-              echo "------------------------------------" >> $PROMPT_FILE
-
-              # Log to GitHub Actions UI
-              echo "📄 Injecting source of $file"
-
-              # Append FULL file source to prompt
-              cat "$file" >> $PROMPT_FILE
-              echo "" >> $PROMPT_FILE
+              echo "" >> "$PROMPT_FILE"
+              echo "------------------------------------" >> "$PROMPT_FILE"
+              echo "📄 FILE: $file" >> "$PROMPT_FILE"
+              echo "------------------------------------" >> "$PROMPT_FILE"
+              cat "$file" >> "$PROMPT_FILE"
+              echo "" >> "$PROMPT_FILE"
             fi
-          done
-
-          echo "✅ Full source code appended to UTG prompt"
+          done < "$FILE_LIST"
 
       # =====================================================
       # STEP 6 — Validate UTG Prompt
-      # (Prevents silent failures)
       # =====================================================
       - name: Validate UTG prompt
         if: steps.changed-files.outputs.files != ''
@@ -577,11 +571,10 @@ jobs:
             exit 1
           fi
           echo "✅ UTG prompt ready"
-          echo "📄 Prompt size:"
           wc -l context/utg-prompt.txt
 
       # =====================================================
-      # STEP 7 — Checkout PRIVATE UTG Repository (PAT access)
+      # STEP 7 — Checkout PRIVATE UTG Repository
       # =====================================================
       - name: Checkout UnitTestGenerationSystem (PRIVATE)
         if: steps.changed-files.outputs.files != ''
