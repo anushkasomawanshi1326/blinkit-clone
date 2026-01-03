@@ -461,7 +461,7 @@
 #               body: comment
 #             });
 
-# auto-test-gen.yml file for the better llm context new one afetr the  PR1 solving 
+# auto-test-gen.yml file for the better llm context new one after the  PR1 solving 
 
 name: Auto Test Generation (React + UTG)
 
