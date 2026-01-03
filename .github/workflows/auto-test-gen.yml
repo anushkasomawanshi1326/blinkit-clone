@@ -531,9 +531,8 @@ jobs:
         run: |
           echo "🚀 Starting React Context Extraction Pipeline"
           mkdir -p context
-          node scripts/react-context-extractor.js
-          echo "✅ Base UTG prompt created"
-
+          node scripts/extractor/index.js
+          echo "✅ UTG prompt generated"
       # =====================================================
       # STEP 5 — Append FULL SOURCE CODE to UTG Prompt (CRITICAL)
       # THIS is the missing piece earlier
