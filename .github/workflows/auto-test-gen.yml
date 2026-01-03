@@ -468,8 +468,8 @@ name: Auto Test Generation (UTG)
 on:
   pull_request:
     paths:
-      - 'src/**/*.jsx'
-      - 'src/**/*.tsx'
+      - "src/**/*.jsx"
+      - "src/**/*.tsx"
 
 permissions:
   contents: write
@@ -478,16 +478,13 @@ permissions:
 
 jobs:
   # =====================================================
-  # 🧪 SANITY CHECK — GUARANTEED CLEAN
+  # 🧪 SANITY CHECK — GUARANTEED CLEAN YAML
   # =====================================================
   sanity-check:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Echo success
-        run: echo "YAML is valid ✅"
+      - uses: actions/checkout@v4
+      - run: echo "YAML is valid ✅"
 
   # =====================================================
   # 🤖 AUTO TEST GENERATION PIPELINE
@@ -508,21 +505,20 @@ jobs:
       # =====================================================
       # STEP 2 — Setup Node.js
       # =====================================================
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
 
       - name: Install React dependencies
         run: npm install --legacy-peer-deps
 
       # =====================================================
-      # STEP 3 — Detect changed JSX/TSX files
+      # STEP 3 — Detect changed JSX / TSX files
       # =====================================================
       - name: Detect changed React files
         id: changed-files
         run: |
-          echo "🔍 Detecting changed files..."
           FILES=$(git diff --name-only \
             ${{ github.event.pull_request.base.sha }} \
             ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' || true)
@@ -531,24 +527,23 @@ jobs:
           echo "$FILES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-          echo "✅ Changed files:"
+          echo "Changed files:"
           echo "$FILES"
 
       # =====================================================
-      # STEP 4 — Run React Context Extraction
+      # STEP 4 — React Context Extraction
       # =====================================================
       - name: Run React context extraction
         if: steps.changed-files.outputs.files != ''
         run: |
-          echo "🚀 Starting React Context Extraction Pipeline"
           mkdir -p context
           node scripts/extractor/index.js
-          echo "✅ Base UTG prompt generated"
+          echo "Base UTG prompt created"
 
       # =====================================================
       # STEP 5 — Append FULL SOURCE CODE (Dependency-aware)
       # =====================================================
-      - name: Append dependency-aware source code to UTG prompt
+      - name: Append dependency-aware source code
         if: steps.changed-files.outputs.files != ''
         run: |
           node <<'EOF'
@@ -596,17 +591,16 @@ ${fs.readFileSync(dep, "utf8")}
           EOF
 
       # =====================================================
-      # STEP 5.1 — FAIL FAST if changed file missing
+      # STEP 5.1 — FAIL FAST VALIDATION
       # =====================================================
-      - name: Ensure UTG is testing changed files
+      - name: Ensure UTG includes changed files
         if: steps.changed-files.outputs.files != ''
         run: |
           for file in ${{ steps.changed-files.outputs.files }}; do
             base=$(basename "$file")
             grep -q "$base" context/utg-prompt.txt \
-              || (echo "❌ Changed file $base missing from UTG prompt" && exit 1)
+              || (echo "❌ Missing $base in UTG prompt" && exit 1)
           done
-          echo "✅ All changed files present in UTG prompt"
 
       # =====================================================
       # STEP 6 — Validate UTG Prompt
@@ -614,17 +608,13 @@ ${fs.readFileSync(dep, "utf8")}
       - name: Validate UTG prompt
         if: steps.changed-files.outputs.files != ''
         run: |
-          if [ ! -f "context/utg-prompt.txt" ]; then
-            echo "❌ UTG prompt not found"
-            exit 1
-          fi
-          echo "✅ UTG prompt ready"
+          test -f context/utg-prompt.txt
           wc -l context/utg-prompt.txt
 
       # =====================================================
       # STEP 7 — Checkout PRIVATE UTG Repository
       # =====================================================
-      - name: Checkout UnitTestGenerationSystem (PRIVATE)
+      - name: Checkout UTG system
         if: steps.changed-files.outputs.files != ''
         uses: actions/checkout@v4
         with:
@@ -633,23 +623,22 @@ ${fs.readFileSync(dep, "utf8")}
           path: utg
 
       # =====================================================
-      # STEP 8 — Inject Prompt into UTG Repo
+      # STEP 8 — Inject UTG Prompt
       # =====================================================
-      - name: Inject UTG prompt into UTG repo
+      - name: Inject UTG prompt
         if: steps.changed-files.outputs.files != ''
         run: |
           mkdir -p utg/context
           cp context/utg-prompt.txt utg/context/utg-prompt.txt
-          echo "✅ Prompt copied to UTG repo"
 
       # =====================================================
-      # STEP 9 — Setup Python for UTG
+      # STEP 9 — Setup Python
       # =====================================================
-      - name: Set up Python
+      - name: Setup Python
         if: steps.changed-files.outputs.files != ''
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: 3.10
 
       - name: Install UTG dependencies
         if: steps.changed-files.outputs.files != ''
@@ -658,18 +647,16 @@ ${fs.readFileSync(dep, "utf8")}
       # =====================================================
       # STEP 10 — Run UTG
       # =====================================================
-      - name: Generate tests using UTG
+      - name: Run UTG
         if: steps.changed-files.outputs.files != ''
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "🤖 Running UTG"
-          python utg/scripts/pr_test_generator.py utg/context/utg-prompt.txt
+        run: python utg/scripts/pr_test_generator.py utg/context/utg-prompt.txt
 
       # =====================================================
       # STEP 11 — Run React Tests
       # =====================================================
-      - name: Run React tests
+      - name: Run Jest tests
         run: npm test -- --coverage
 
       # =====================================================
@@ -679,7 +666,6 @@ ${fs.readFileSync(dep, "utf8")}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
           git add .
           git commit -m "chore: add UTG generated tests [skip ci]" || echo "No changes"
           git push origin HEAD:${{ github.head_ref }}
