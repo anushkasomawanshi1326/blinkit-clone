@@ -1,4 +1,113 @@
-# # name: React Component Extraction (Schema Generation)
+# # # name: React Component Extraction (Schema Generation)
+
+# # # on:
+# # #   pull_request:
+# # #     paths:
+# # #       - "src/**/*.jsx"
+# # #       - "src/**/*.tsx"
+
+# # # permissions:
+# # #   contents: read
+# # #   pull-requests: write
+
+# # # jobs:
+# # #   extract-react-schema:
+# # #     runs-on: ubuntu-latest
+
+# # #     steps:
+# # #       # STEP 0: Checkout
+# # #       - name: Checkout React repository
+# # #         uses: actions/checkout@v4
+# # #         with:
+# # #           fetch-depth: 0
+
+# # #       # STEP 1: Setup Node
+# # #       - name: Setup Node.js
+# # #         uses: actions/setup-node@v4
+# # #         with:
+# # #           node-version: "18"
+
+# # #       - name: Install dependencies
+# # #         run: npm install --legacy-peer-deps
+
+# # #       # STEP 2: Detect changed files
+# # #       - name: Detect changed JSX / TSX files
+# # #         id: changed-files
+# # #         run: |
+# # #           echo "🔍 Detecting changed React components..."
+# # #           FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' || true)
+# # #           echo "Changed files:"
+# # #           echo "$FILES"
+# # #           FILES_SINGLE_LINE=$(echo "$FILES" | tr '\n' ' ')
+# # #           echo "files=$FILES_SINGLE_LINE" >> $GITHUB_OUTPUT
+
+# # #       # STEP 3: Run extractor
+# # #       - name: Run component analysis & extraction
+# # #         if: steps.changed-files.outputs.files != ''
+# # #         run: |
+# # #           echo "🚀 Running React component extractor..."
+# # #           echo "Files under analysis:"
+# # #           echo "${{ steps.changed-files.outputs.files }}"
+# # #           mkdir -p context
+# # #           node scripts/extractor/index.js
+
+# # #       # STEP 4: Display generated schema neatly
+# # #       - name: Display generated schema
+# # #         if: steps.changed-files.outputs.files != ''
+# # #         run: |
+# # #           SCHEMA_FILE="context/react-component-schema.json"
+# # #           if [ -f "$SCHEMA_FILE" ]; then
+# # #             echo "📦 Generated React Component Schema:"
+# # #             echo "-----------------------------------"
+# # #             cat "$SCHEMA_FILE"
+# # #             echo "-----------------------------------"
+# # #             echo "✅ Schema displayed successfully"
+# # #           else
+# # #             echo "⚠️ Schema file not found: $SCHEMA_FILE"
+# # #             exit 1
+# # #           fi
+
+# # #       # STEP 5: Upload artifact
+# # #       - name: Upload schema artifact
+# # #         if: steps.changed-files.outputs.files != ''
+# # #         uses: actions/upload-artifact@v4
+# # #         with:
+# # #           name: react-component-schema
+# # #           path: context/react-component-schema.json
+
+# # #       # STEP 6: Comment PR with extraction summary
+# # #       - name: Comment PR with extraction summary
+# # #         if: steps.changed-files.outputs.files != ''
+# # #         uses: actions/github-script@v6
+# # #         with:
+# # #           script: |
+# # #             const fs = require("fs");
+# # #             const schemaPath = "context/react-component-schema.json";
+
+# # #             if (!fs.existsSync(schemaPath)) {
+# # #               console.log("Schema not found. Skipping PR comment.");
+# # #               return;
+# # #             }
+
+# # #             const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+
+# # #             let body = "## 🧩 React Component Extraction Completed\n\n";
+# # #             body += "**Component Name:** " + (schema.componentName || "N/A") + "\n\n";
+# # #             body += "### 📦 Extracted Signals\n";
+# # #             body += "- **Props:** " + ((schema.props || []).map(p => p.name).join(", ") || "None") + "\n";
+# # #             body += "- **Hooks:** " + ((schema.hooks || []).join(", ") || "None") + "\n";
+# # #             body += "- **Child Components:** " + ((schema.children || []).join(", ") || "None") + "\n";
+# # #             body += "- **Related Files:** " + ((schema.relatedFiles || []).join(", ") || "None") + "\n\n";
+# # #             body += "✅ Schema successfully generated and stored.";
+
+# # #             github.rest.issues.createComment({
+# # #               issue_number: context.issue.number,
+# # #               owner: context.repo.owner,
+# # #               repo: context.repo.repo,
+# # #               body: body
+# # #             });
+
+# # name: React Component Extraction + UTG Context Generation
 
 # # on:
 # #   pull_request:
@@ -11,17 +120,21 @@
 # #   pull-requests: write
 
 # # jobs:
-# #   extract-react-schema:
+# #   extract-react-context:
 # #     runs-on: ubuntu-latest
 
 # #     steps:
-# #       # STEP 0: Checkout
-# #       - name: Checkout React repository
+# #       # =====================================================
+# #       # STEP 0 — Checkout Repository
+# #       # =====================================================
+# #       - name: Checkout repository
 # #         uses: actions/checkout@v4
 # #         with:
 # #           fetch-depth: 0
 
-# #       # STEP 1: Setup Node
+# #       # =====================================================
+# #       # STEP 1 — Setup Node
+# #       # =====================================================
 # #       - name: Setup Node.js
 # #         uses: actions/setup-node@v4
 # #         with:
@@ -30,83 +143,94 @@
 # #       - name: Install dependencies
 # #         run: npm install --legacy-peer-deps
 
-# #       # STEP 2: Detect changed files
-# #       - name: Detect changed JSX / TSX files
+# #       # =====================================================
+# #       # STEP 2 — Detect changed React files
+# #       # =====================================================
+# #       - name: Detect changed React components
 # #         id: changed-files
 # #         run: |
-# #           echo "🔍 Detecting changed React components..."
-# #           FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' || true)
+# #           echo "🔍 Detecting changed JSX / TSX files..."
+
+# #           FILES=$(git diff --name-only \
+# #             ${{ github.event.pull_request.base.sha }} \
+# #             ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' || true)
+
 # #           echo "Changed files:"
 # #           echo "$FILES"
+
 # #           FILES_SINGLE_LINE=$(echo "$FILES" | tr '\n' ' ')
 # #           echo "files=$FILES_SINGLE_LINE" >> $GITHUB_OUTPUT
 
-# #       # STEP 3: Run extractor
-# #       - name: Run component analysis & extraction
+# #       # =====================================================
+# #       # STEP 3 — Run Extractor (Schema + UTG Prompt)
+# #       # =====================================================
+# #       - name: Run React context extraction pipeline
 # #         if: steps.changed-files.outputs.files != ''
 # #         run: |
-# #           echo "🚀 Running React component extractor..."
+# #           echo "🚀 Running React context extraction..."
 # #           echo "Files under analysis:"
 # #           echo "${{ steps.changed-files.outputs.files }}"
+
 # #           mkdir -p context
 # #           node scripts/extractor/index.js
 
-# #       # STEP 4: Display generated schema neatly
-# #       - name: Display generated schema
+# #       # =====================================================
+# #       # STEP 4 — Display Schema
+# #       # =====================================================
+# #       - name: Display generated component schema
 # #         if: steps.changed-files.outputs.files != ''
 # #         run: |
 # #           SCHEMA_FILE="context/react-component-schema.json"
+
 # #           if [ -f "$SCHEMA_FILE" ]; then
-# #             echo "📦 Generated React Component Schema:"
+# #             echo "📦 React Component Schema"
 # #             echo "-----------------------------------"
 # #             cat "$SCHEMA_FILE"
 # #             echo "-----------------------------------"
-# #             echo "✅ Schema displayed successfully"
 # #           else
-# #             echo "⚠️ Schema file not found: $SCHEMA_FILE"
+# #             echo "❌ Schema file not found"
 # #             exit 1
 # #           fi
 
-# #       # STEP 5: Upload artifact
-# #       - name: Upload schema artifact
+# #       # =====================================================
+# #       # STEP 5 — Display UTG Prompt (LLM Context)
+# #       # =====================================================
+# #       - name: Display UTG prompt (LLM context)
+# #         if: steps.changed-files.outputs.files != ''
+# #         run: |
+# #           UTG_FILE="context/utg-prompt.json"
+
+# #           if [ -f "$UTG_FILE" ]; then
+# #             echo "🤖 UTG Prompt (Schema + FULL Source Code)"
+# #             echo "-----------------------------------"
+# #             cat "$UTG_FILE"
+# #             echo "-----------------------------------"
+# #           else
+# #             echo "❌ UTG prompt file not found"
+# #             exit 1
+# #           fi
+
+# #       # =====================================================
+# #       # STEP 6 — Upload Artifacts
+# #       # =====================================================
+# #       - name: Upload extraction artifacts
 # #         if: steps.changed-files.outputs.files != ''
 # #         uses: actions/upload-artifact@v4
 # #         with:
-# #           name: react-component-schema
-# #           path: context/react-component-schema.json
+# #           name: react-context-artifacts
+# #           path: |
+# #             context/react-component-schema.json
+# #             context/utg-prompt.json
 
-# #       # STEP 6: Comment PR with extraction summary
+# #       # =====================================================
+# #       # STEP 7 — Comment PR Summary
+# #       # =====================================================
 # #       - name: Comment PR with extraction summary
 # #         if: steps.changed-files.outputs.files != ''
-# #         uses: actions/github-script@v6
-# #         with:
-# #           script: |
-# #             const fs = require("fs");
-# #             const schemaPath = "context/react-component-schema.json";
+# #         run: node scripts/comment-pr.js
 
-# #             if (!fs.existsSync(schemaPath)) {
-# #               console.log("Schema not found. Skipping PR comment.");
-# #               return;
-# #             }
 
-# #             const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
-
-# #             let body = "## 🧩 React Component Extraction Completed\n\n";
-# #             body += "**Component Name:** " + (schema.componentName || "N/A") + "\n\n";
-# #             body += "### 📦 Extracted Signals\n";
-# #             body += "- **Props:** " + ((schema.props || []).map(p => p.name).join(", ") || "None") + "\n";
-# #             body += "- **Hooks:** " + ((schema.hooks || []).join(", ") || "None") + "\n";
-# #             body += "- **Child Components:** " + ((schema.children || []).join(", ") || "None") + "\n";
-# #             body += "- **Related Files:** " + ((schema.relatedFiles || []).join(", ") || "None") + "\n\n";
-# #             body += "✅ Schema successfully generated and stored.";
-
-# #             github.rest.issues.createComment({
-# #               issue_number: context.issue.number,
-# #               owner: context.repo.owner,
-# #               repo: context.repo.repo,
-# #               body: body
-# #             });
-
+# --this is working proeprly - below 
 # name: React Component Extraction + UTG Context Generation
 
 # on:
@@ -133,7 +257,7 @@
 #           fetch-depth: 0
 
 #       # =====================================================
-#       # STEP 1 — Setup Node
+#       # STEP 1 — Setup Node Environment
 #       # =====================================================
 #       - name: Setup Node.js
 #         uses: actions/setup-node@v4
@@ -144,74 +268,83 @@
 #         run: npm install --legacy-peer-deps
 
 #       # =====================================================
-#       # STEP 2 — Detect changed React files
+#       # STEP 2 — Detect Changed React Files
 #       # =====================================================
-#       - name: Detect changed React components
+#       - name: Detect changed JSX / TSX files
 #         id: changed-files
 #         run: |
-#           echo "🔍 Detecting changed JSX / TSX files..."
+#           echo "🔍 Detecting changed React component files..."
 
 #           FILES=$(git diff --name-only \
 #             ${{ github.event.pull_request.base.sha }} \
 #             ${{ github.sha }} | grep -E '\.jsx$|\.tsx$' || true)
 
-#           echo "Changed files:"
+#           echo "Changed files detected:"
 #           echo "$FILES"
 
 #           FILES_SINGLE_LINE=$(echo "$FILES" | tr '\n' ' ')
 #           echo "files=$FILES_SINGLE_LINE" >> $GITHUB_OUTPUT
 
 #       # =====================================================
-#       # STEP 3 — Run Extractor (Schema + UTG Prompt)
+#       # STEP 3 — Run Extraction Pipeline
+#       # (Schema + UTG Prompt Generation)
 #       # =====================================================
 #       - name: Run React context extraction pipeline
 #         if: steps.changed-files.outputs.files != ''
+#         env:
+#           CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
 #         run: |
 #           echo "🚀 Running React context extraction..."
 #           echo "Files under analysis:"
-#           echo "${{ steps.changed-files.outputs.files }}"
+#           echo "$CHANGED_FILES"
 
 #           mkdir -p context
 #           node scripts/extractor/index.js
 
 #       # =====================================================
-#       # STEP 4 — Display Schema
+#       # STEP 4 — Validate Generated Files
+#       # =====================================================
+#       - name: Validate extraction outputs
+#         if: steps.changed-files.outputs.files != ''
+#         run: |
+#           echo "🔎 Validating generated context files..."
+
+#           if [ ! -f "context/react-component-schema.json" ]; then
+#             echo "❌ react-component-schema.json not found"
+#             exit 1
+#           fi
+
+#           if [ ! -f "context/utg-prompt.txt" ]; then
+#             echo "❌ utg-prompt.txt not found"
+#             exit 1
+#           fi
+
+#           echo "✅ All required files generated successfully"
+
+#       # =====================================================
+#       # STEP 5 — Display Component Schema
 #       # =====================================================
 #       - name: Display generated component schema
 #         if: steps.changed-files.outputs.files != ''
 #         run: |
-#           SCHEMA_FILE="context/react-component-schema.json"
-
-#           if [ -f "$SCHEMA_FILE" ]; then
-#             echo "📦 React Component Schema"
-#             echo "-----------------------------------"
-#             cat "$SCHEMA_FILE"
-#             echo "-----------------------------------"
-#           else
-#             echo "❌ Schema file not found"
-#             exit 1
-#           fi
+#           echo "📦 React Component Schema"
+#           echo "-----------------------------------"
+#           cat context/react-component-schema.json
+#           echo "-----------------------------------"
 
 #       # =====================================================
-#       # STEP 5 — Display UTG Prompt (LLM Context)
+#       # STEP 6 — Display UTG Prompt (LLM Context)
 #       # =====================================================
 #       - name: Display UTG prompt (LLM context)
 #         if: steps.changed-files.outputs.files != ''
 #         run: |
-#           UTG_FILE="context/utg-prompt.json"
-
-#           if [ -f "$UTG_FILE" ]; then
-#             echo "🤖 UTG Prompt (Schema + FULL Source Code)"
-#             echo "-----------------------------------"
-#             cat "$UTG_FILE"
-#             echo "-----------------------------------"
-#           else
-#             echo "❌ UTG prompt file not found"
-#             exit 1
-#           fi
+#           echo "🤖 UTG Prompt (Schema + FULL Source Code)"
+#           echo "-----------------------------------"
+#           cat context/utg-prompt.txt
+#           echo "-----------------------------------"
 
 #       # =====================================================
-#       # STEP 6 — Upload Artifacts
+#       # STEP 7 — Upload Artifacts
 #       # =====================================================
 #       - name: Upload extraction artifacts
 #         if: steps.changed-files.outputs.files != ''
@@ -220,14 +353,18 @@
 #           name: react-context-artifacts
 #           path: |
 #             context/react-component-schema.json
-#             context/utg-prompt.json
+#             context/utg-prompt.txt
 
 #       # =====================================================
-#       # STEP 7 — Comment PR Summary
+#       # STEP 8 — Comment PR with Extraction Summary
 #       # =====================================================
 #       - name: Comment PR with extraction summary
 #         if: steps.changed-files.outputs.files != ''
 #         run: node scripts/comment-pr.js
+
+
+
+# new one after the changes added in the react-component-extraction.yml file 
 
 name: React Component Extraction + UTG Context Generation
 
@@ -342,7 +479,7 @@ jobs:
           echo "-----------------------------------"
 
       # =====================================================
-      # STEP 7 — Upload Artifacts
+      # STEP 7 — Upload Extraction Artifacts (EXISTING)
       # =====================================================
       - name: Upload extraction artifacts
         if: steps.changed-files.outputs.files != ''
@@ -352,6 +489,16 @@ jobs:
           path: |
             context/react-component-schema.json
             context/utg-prompt.txt
+
+      # =====================================================
+      # ✅ FIX 1 — Upload UTG Prompt Artifact (FOR UTG WORKFLOW)
+      # =====================================================
+      - name: Upload UTG prompt artifact
+        if: steps.changed-files.outputs.files != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: utg-prompt
+          path: context/utg-prompt.txt
 
       # =====================================================
       # STEP 8 — Comment PR with Extraction Summary

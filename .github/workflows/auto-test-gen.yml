@@ -469,7 +469,6 @@ on:
       - 'src/**/*.jsx'
       - 'src/**/*.tsx'
 
-# ✅ REQUIRED PERMISSIONS
 permissions:
   contents: write
   pull-requests: write
@@ -489,7 +488,7 @@ jobs:
           fetch-depth: 0
 
       # =====================================================
-      # 2️⃣ Setup Node (for React tests)
+      # 2️⃣ Setup Node
       # =====================================================
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -500,7 +499,7 @@ jobs:
         run: npm install --legacy-peer-deps
 
       # =====================================================
-      # 3️⃣ Get changed JSX/TSX files (TRIGGER ONLY)
+      # 3️⃣ Detect changed components (TRIGGER ONLY)
       # =====================================================
       - name: Get changed files
         id: changed-files
@@ -511,7 +510,7 @@ jobs:
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
       # =====================================================
-      # 🔽 FIXED: Download UTG prompt artifact (v4)
+      # 4️⃣ Download UTG Prompt Artifact (FIXED)
       # =====================================================
       - name: Download UTG prompt artifact
         if: steps.changed-files.outputs.files != ''
@@ -521,19 +520,19 @@ jobs:
           path: context
 
       # =====================================================
-      # 4️⃣ Validate UTG prompt exists
+      # 5️⃣ Validate UTG prompt exists
       # =====================================================
       - name: Validate UTG prompt
         if: steps.changed-files.outputs.files != ''
         run: |
           if [ ! -f "context/utg-prompt.txt" ]; then
-            echo "❌ UTG prompt not found. Extraction step may have failed."
+            echo "❌ UTG prompt not found."
             exit 1
           fi
           echo "✅ UTG prompt found"
 
       # =====================================================
-      # 5️⃣ Checkout PRIVATE UTG repo using PAT
+      # 6️⃣ Checkout PRIVATE UTG repo
       # =====================================================
       - name: Checkout UnitTestGenerationSystem (PRIVATE)
         if: steps.changed-files.outputs.files != ''
@@ -544,17 +543,16 @@ jobs:
           path: utg
 
       # =====================================================
-      # 6️⃣ Copy UTG prompt into UTG repo
+      # 7️⃣ Copy prompt into UTG
       # =====================================================
       - name: Copy UTG prompt into UTG repo
         if: steps.changed-files.outputs.files != ''
         run: |
           mkdir -p utg/context
           cp context/utg-prompt.txt utg/context/utg-prompt.txt
-          echo "✅ UTG prompt copied to UTG repo"
 
       # =====================================================
-      # 7️⃣ Setup Python for UTG
+      # 8️⃣ Setup Python
       # =====================================================
       - name: Set up Python
         if: steps.changed-files.outputs.files != ''
@@ -564,11 +562,10 @@ jobs:
 
       - name: Install UTG dependencies
         if: steps.changed-files.outputs.files != ''
-        run: |
-          pip install -r utg/requirements.txt
+        run: pip install -r utg/requirements.txt
 
       # =====================================================
-      # 8️⃣ Run UTG test generation (LLM PROMPT DRIVEN)
+      # 9️⃣ Run UTG (PROMPT-DRIVEN)
       # =====================================================
       - name: Generate tests using UTG
         if: steps.changed-files.outputs.files != ''
@@ -578,13 +575,13 @@ jobs:
           python utg/scripts/pr_test_generator.py utg/context/utg-prompt.txt
 
       # =====================================================
-      # 9️⃣ Run React tests
+      # 🔟 Run tests
       # =====================================================
       - name: Run generated tests
         run: npm test -- --coverage
 
       # =====================================================
-      # 🔟 Commit generated tests back to PR branch
+      # 1️⃣1️⃣ Commit generated tests
       # =====================================================
       - name: Commit generated tests
         run: |
@@ -593,43 +590,3 @@ jobs:
           git add .
           git commit -m "chore: add agentic generated tests [skip ci]" || echo "No changes"
           git push origin HEAD:${{ github.head_ref }}
-
-      # =====================================================
-      # 1️⃣1️⃣ Comment PR with UTG results
-      # =====================================================
-      - name: Comment PR with results
-        uses: actions/github-script@v6
-        if: always()
-        with:
-          script: |
-            const fs = require('fs');
-            const path = 'src/logs/pr_test_generation.json';
-
-            if (!fs.existsSync(path)) {
-              console.log("UTG results file not found, skipping comment.");
-              return;
-            }
-
-            const results = JSON.parse(fs.readFileSync(path, 'utf8'));
-
-            const costReport = results.cost_report || {};
-            const totalCost = costReport.total_cost ?? "N/A";
-            const totalTokens = costReport.total_tokens ?? "N/A";
-
-            const comment = `## 🤖 Agentic Test Generation Results
-
-            **Files Processed:** ${results.filesProcessed ?? "N/A"}
-            **Tests Generated:** ${results.testsGenerated ?? "N/A"}
-            **Tests Passed:** ${results.testsPassed ?? "N/A"} ✅
-
-            ### 💰 Cost Report
-            - **Total Cost:** ${totalCost}
-            - **Total Tokens:** ${totalTokens}
-            `;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
