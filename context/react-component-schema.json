@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "componentName": "OrderSummaryTest",
+    "entryFile": "src/components/OrderSummaryTest.jsx",
+    "type": "react-functional-component"
+  },
+  "dependencies": {
+    "customHooks": [
+      "import { useCart } from \"../hooks/useCart\";"
+    ],
+    "utils": [],
+    "components": [],
+    "relatedFiles": [
+      "/home/runner/work/Blinkit-clone/Blinkit-clone/src/components/OrderSummaryTest.jsx",
+      "/home/runner/work/Blinkit-clone/Blinkit-clone/src/components/Cart.jsx",
+      "/home/runner/work/Blinkit-clone/Blinkit-clone/src/components/Coupon.jsx",
+      "/home/runner/work/Blinkit-clone/Blinkit-clone/src/components/Skeleton.jsx",
+      "/home/runner/work/Blinkit-clone/Blinkit-clone/src/hooks/useCart.js",
+      "/home/runner/work/Blinkit-clone/Blinkit-clone/src/data/products.js"
+    ]
+  },
+  "behavior": {
+    "usesState": true,
+    "usesEffect": true,
+    "usesContext": false,
+    "hooksUsed": [
+      "useState",
+      "useEffect",
+      "useCart"
+    ]
+  },
+  "uiPatterns": {
+    "conditionalRendering": true,
+    "listRendering": true,
+    "hasLoader": true,
+    "hasErrorState": false,
+    "eventHandlerCount": 1
+  },
+  "riskAreas": [
+    "side-effect-on-mount",
+    "loading-state",
+    "empty-list",
+    "user-interaction"
+  ]
+}

@@ -1,0 +1,1026 @@
+You are a senior frontend engineer specializing in React testing.
+
+====================================================
+COMPONENT CONTEXT
+====================================================
+Component Name: OrderSummaryTest
+Entry File: src/components/OrderSummaryTest.jsx
+Component Type: react-functional-component
+
+====================================================
+BEHAVIORAL ANALYSIS
+====================================================
+- Uses State: true
+- Uses Effect: true
+- Uses Context: false
+- Hooks Used: useState, useEffect, useCart
+
+====================================================
+UI PATTERNS DETECTED
+====================================================
+- Conditional Rendering: true
+- List Rendering: true
+- Loader State: true
+- Error State: false
+- Event Handlers Count: 1
+
+====================================================
+DEPENDENCIES
+====================================================
+- Custom Hooks: import { useCart } from "../hooks/useCart";
+- Utils: None
+- Child Components: None
+
+====================================================
+IDENTIFIED RISK AREAS
+====================================================
+- side-effect-on-mount
+- loading-state
+- empty-list
+- user-interaction
+
+====================================================
+FULL SOURCE CODE (GROUND TRUTH)
+====================================================
+
+----------------------------------------------------
+FILE: src/components/OrderSummaryTest.jsx
+----------------------------------------------------
+import { useState, useEffect } from "react";
+
+import Cart from "./Cart";
+import Coupon from "./Coupon";
+import Skeleton from "./Skeleton";
+
+import { useCart } from "../hooks/useCart";
+import products from "../data/products";
+
+export default function OrderSummaryTest() {
+  // ===============================
+  // STATE
+  // ===============================
+  const [loading, setLoading] = useState(true);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // ===============================
+  // CUSTOM HOOK
+  // ===============================
+  const { cartItems } = useCart();
+
+  // ===============================
+  // SIDE EFFECT
+  // ===============================
+  useEffect(() => {
+    // simulate API / calculation delay
+    setTimeout(() => {
+      const total = cartItems.reduce(
+        (sum, item) => sum + item.price,
+        0
+      );
+      setTotalPrice(total);
+      setLoading(false);
+    }, 500);
+  }, [cartItems]);
+
+  // ===============================
+  // CONDITIONAL RENDERING
+  // ===============================
+  if (loading) {
+    return <Skeleton />;
+  }
+
+  return (
+    <div>
+      <h2>🧾 Order Summary</h2>
+
+      {/* LIST RENDERING */}
+      {products.length === 0 ? (
+        <p>No products available</p>
+      ) : (
+        products.map((product) => (
+          <div key={product.id}>
+            <span>{product.name}</span>
+          </div>
+        ))
+      )}
+
+      {/* CHILD COMPONENTS */}
+      <Cart />
+      <Coupon />
+
+      {/* USER INTERACTION */}
+      <button onClick={() => alert("Order Placed!")}>
+        Place Order ₹{totalPrice}
+      </button>
+    </div>
+  );
+}
+
+
+----------------------------------------------------
+FILE: /home/runner/work/Blinkit-clone/Blinkit-clone/src/components/OrderSummaryTest.jsx
+----------------------------------------------------
+import { useState, useEffect } from "react";
+
+import Cart from "./Cart";
+import Coupon from "./Coupon";
+import Skeleton from "./Skeleton";
+
+import { useCart } from "../hooks/useCart";
+import products from "../data/products";
+
+export default function OrderSummaryTest() {
+  // ===============================
+  // STATE
+  // ===============================
+  const [loading, setLoading] = useState(true);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // ===============================
+  // CUSTOM HOOK
+  // ===============================
+  const { cartItems } = useCart();
+
+  // ===============================
+  // SIDE EFFECT
+  // ===============================
+  useEffect(() => {
+    // simulate API / calculation delay
+    setTimeout(() => {
+      const total = cartItems.reduce(
+        (sum, item) => sum + item.price,
+        0
+      );
+      setTotalPrice(total);
+      setLoading(false);
+    }, 500);
+  }, [cartItems]);
+
+  // ===============================
+  // CONDITIONAL RENDERING
+  // ===============================
+  if (loading) {
+    return <Skeleton />;
+  }
+
+  return (
+    <div>
+      <h2>🧾 Order Summary</h2>
+
+      {/* LIST RENDERING */}
+      {products.length === 0 ? (
+        <p>No products available</p>
+      ) : (
+        products.map((product) => (
+          <div key={product.id}>
+            <span>{product.name}</span>
+          </div>
+        ))
+      )}
+
+      {/* CHILD COMPONENTS */}
+      <Cart />
+      <Coupon />
+
+      {/* USER INTERACTION */}
+      <button onClick={() => alert("Order Placed!")}>
+        Place Order ₹{totalPrice}
+      </button>
+    </div>
+  );
+}
+
+
+----------------------------------------------------
+FILE: /home/runner/work/Blinkit-clone/Blinkit-clone/src/components/Cart.jsx
+----------------------------------------------------
+import { useNavigate } from "react-router-dom";
+
+export default function Cart({ cart, cartTotal, onCheckout }) {
+  const navigate = useNavigate();
+
+  const handleCheckout = () => {
+    if (cart.length === 0) {
+      alert("Your cart is empty!");
+      return;
+    }
+    navigate("/checkout");
+  };
+
+  return (
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '25px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+      position: 'sticky',
+      top: '100px',
+      height: 'fit-content'
+    }}>
+      <h3 style={{ 
+        margin: '0 0 20px 0', 
+        color: '#333',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <span>🛒</span>
+        Shopping Cart ({cart.length})
+      </h3>
+      
+      {cart.length === 0 ? (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '30px 20px',
+          color: '#666'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '15px' }}>🛒</div>
+          <p style={{ fontSize: '16px' }}>Your cart is empty</p>
+          <p style={{ fontSize: '14px', color: '#888', marginTop: '5px' }}>Add items to get started</p>
+        </div>
+      ) : (
+        <>
+          <div style={{ 
+            maxHeight: '300px', 
+            overflowY: 'auto',
+            marginBottom: '20px',
+            paddingRight: '10px'
+          }}>
+            {cart.map((item, index) => (
+              <div 
+                key={index}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 0',
+                  borderBottom: '1px solid #eee'
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: 0, fontWeight: '500' }}>{item.name}</p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '14px', color: '#666' }}>1 item</p>
+                </div>
+                <div style={{ fontWeight: 'bold', color: '#0c831f' }}>₹{item.price}</div>
+              </div>
+            ))}
+          </div>
+          
+          <div style={{ 
+            paddingTop: '20px', 
+            borderTop: '2px solid #eee',
+            marginTop: '10px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ color: '#666' }}>Subtotal:</span>
+              <span style={{ fontWeight: '500' }}>₹{cartTotal}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ color: '#666' }}>Delivery:</span>
+              <span style={{ color: '#0c831f', fontWeight: '500' }}>FREE</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '20px', fontWeight: 'bold' }}>
+              <span>Total:</span>
+              <span>₹{cartTotal}</span>
+            </div>
+            
+            <button
+              onClick={handleCheckout}
+              style={{
+                width: '100%',
+                padding: '16px',
+                background: '#0c831f',
+                color: 'white',
+                border: 'none',
+                borderRadius: '10px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginTop: '20px',
+                transition: 'background 0.3s',
+                ':hover': {
+                  background: '#0a6e1a'
+                }
+              }}
+            >
+              Proceed to Checkout
+            </button>
+            
+            <p style={{ 
+              textAlign: 'center', 
+              marginTop: '15px', 
+              fontSize: '12px', 
+              color: '#888' 
+            }}>
+              Delivery in 10-15 minutes
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+----------------------------------------------------
+FILE: /home/runner/work/Blinkit-clone/Blinkit-clone/src/components/Coupon.jsx
+----------------------------------------------------
+import { useState } from "react";
+
+export default function Coupon({ total, setTotal }) {
+  const [applied, setApplied] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState(null);
+  
+  const coupons = [
+    { code: "SAVE50", discount: 50, minOrder: 300, description: "Get ₹50 off on orders above ₹300" },
+    { code: "WELCOME100", discount: 100, minOrder: 500, description: "Get ₹100 off on orders above ₹500" },
+    { code: "QUICK20", discount: 20, minOrder: 200, description: "Get ₹20 off on orders above ₹200" }
+  ];
+
+  const applyCoupon = (coupon) => {
+    if (total >= coupon.minOrder) {
+      setTotal(total - coupon.discount);
+      setSelectedCoupon(coupon);
+      setApplied(true);
+      alert(`Coupon ${coupon.code} applied! Saved ₹${coupon.discount}`);
+    } else {
+      alert(`Minimum order value of ₹${coupon.minOrder} required for ${coupon.code}`);
+    }
+  };
+
+  const removeCoupon = () => {
+    if (selectedCoupon) {
+      setTotal(total + selectedCoupon.discount);
+      setApplied(false);
+      setSelectedCoupon(null);
+    }
+  };
+
+  return (
+    <div>
+      <h3 style={{ marginBottom: '15px', color: '#555' }}>Available Coupons</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {coupons.map(coupon => (
+          <div
+            key={coupon.code}
+            style={{
+              border: selectedCoupon?.code === coupon.code 
+                ? '2px solid #0c831f' 
+                : '1px solid #ddd',
+              borderRadius: '8px',
+              padding: '15px',
+              background: selectedCoupon?.code === coupon.code 
+                ? '#f0fff4' 
+                : '#f9f9f9',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '5px' }}>
+                <span style={{ 
+                  background: '#0c831f', 
+                  color: 'white', 
+                  padding: '2px 8px', 
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}>
+                  {coupon.code}
+                </span>
+                <span style={{ fontWeight: 'bold', color: '#0c831f' }}>₹{coupon.discount} OFF</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{coupon.description}</p>
+              <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#888' }}>
+                Min. order: ₹{coupon.minOrder}
+              </p>
+            </div>
+            
+            {selectedCoupon?.code === coupon.code ? (
+              <button
+                onClick={removeCoupon}
+                style={{
+                  padding: '8px 15px',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                Remove
+              </button>
+            ) : (
+              <button
+                onClick={() => applyCoupon(coupon)}
+                disabled={total < coupon.minOrder}
+                style={{
+                  padding: '8px 15px',
+                  background: total >= coupon.minOrder ? '#0c831f' : '#ccc',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '14px',
+                  cursor: total >= coupon.minOrder ? 'pointer' : 'not-allowed',
+                  opacity: total >= coupon.minOrder ? 1 : 0.6
+                }}
+              >
+                Apply
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      
+      {selectedCoupon && (
+        <div style={{ 
+          marginTop: '15px', 
+          padding: '10px', 
+          background: '#d4edda', 
+          borderRadius: '5px',
+          color: '#155724',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>✅ Coupon <strong>{selectedCoupon.code}</strong> applied (-₹{selectedCoupon.discount})</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+----------------------------------------------------
+FILE: /home/runner/work/Blinkit-clone/Blinkit-clone/src/components/Skeleton.jsx
+----------------------------------------------------
+export default function Skeleton() {
+  return (
+    <div style={{
+      background: 'linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'loading 1.5s infinite',
+      borderRadius: '8px'
+    }}>
+      <style>{`
+        @keyframes loading {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Skeleton variations for different components
+export function ProductSkeleton() {
+  return (
+    <div style={{ 
+      background: 'white', 
+      borderRadius: '12px', 
+      padding: '20px',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+    }}>
+      <Skeleton style={{ height: '150px', marginBottom: '15px' }} />
+      <Skeleton style={{ height: '20px', width: '70%', marginBottom: '10px' }} />
+      <Skeleton style={{ height: '15px', width: '50%', marginBottom: '15px' }} />
+      <Skeleton style={{ height: '40px', width: '100%' }} />
+    </div>
+  );
+}
+
+----------------------------------------------------
+FILE: /home/runner/work/Blinkit-clone/Blinkit-clone/src/hooks/useCart.js
+----------------------------------------------------
+import { useState, useEffect } from "react";
+
+export default function useCart() {
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem("blinkit-cart");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("blinkit-cart", JSON.stringify(cart));
+  }, [cart]);
+
+  const addToCart = (product) => {
+    setCart(prev => [...prev, { ...product, cartId: Date.now() }]);
+  };
+
+  const removeFromCart = (cartId) => {
+    setCart(prev => prev.filter(item => item.cartId !== cartId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  return {
+    cart,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    cartCount: cart.length,
+    cartTotal: cart.reduce((sum, item) => sum + item.price, 0)
+  };
+}
+
+----------------------------------------------------
+FILE: /home/runner/work/Blinkit-clone/Blinkit-clone/src/data/products.js
+----------------------------------------------------
+const products = [
+  // ================= DAIRY PRODUCTS =================
+  {
+    id: 1,
+    name: "Amul Milk",
+    price: 60,
+    image: "/milk.png",
+    stock: 10,
+    category: "Dairy",
+    popular: true,
+    description: "Fresh full cream milk, 1 liter"
+  },
+  {
+    id: 2,
+    name: "Amul Butter 500g",
+    price: 280,
+    image: "/butter.png",
+    stock: 15,
+    category: "Dairy",
+    description: "Pure salted butter, 500g pack"
+  },
+  {
+    id: 3,
+    name: "Paneer 250g",
+    price: 120,
+    image: "/paneer.png",
+    stock: 8,
+    category: "Dairy",
+    description: "Fresh homemade paneer"
+  },
+  {
+    id: 4,
+    name: "Yogurt 1kg",
+    price: 85,
+    image: "/yougurt.png",
+    stock: 12,
+    category: "Dairy",
+    description: "Fresh curd, 1kg packet"
+  },
+
+  // ================= BAKERY ITEMS =================
+  {
+    id: 5,
+    name: "Brown Bread",
+    price: 45,
+    image: "/Brown bread.png",
+    stock: 3,
+    category: "Bakery",
+    popular: true,
+    description: "Whole wheat bread, 400g"
+  },
+  {
+    id: 6,
+    name: "White Bread",
+    price: 35,
+    image: "/White bread.png",
+    stock: 20,
+    category: "Bakery",
+    description: "Fresh white bread, 400g"
+  },
+  {
+    id: 7,
+    name: "Croissants 4pcs",
+    price: 180,
+    image: "/Croissants.png",
+    stock: 6,
+    category: "Bakery",
+    description: "Buttery croissants, pack of 4"
+  },
+
+  // ================= SNACKS =================
+  {
+    id: 8,
+    name: "Lay's Chips",
+    price: 30,
+    image: "/Lay's Chips.png",
+    stock: 20,
+    category: "Snacks",
+    popular: true,
+    description: "Classic salted potato chips"
+  },
+  {
+    id: 9,
+    name: "Kurkure",
+    price: 25,
+    image: "/Kurkure.png",
+    stock: 18,
+    category: "Snacks",
+    description: "Masala munch crunchy snacks"
+  },
+  {
+    id: 10,
+    name: "Bourbon Biscuits",
+    price: 40,
+    image: "/Bourbon Biscuits.png",
+    stock: 25,
+    category: "Snacks",
+    description: "Chocolate cream biscuits, 150g"
+  },
+
+  // ================= EGGS =================
+  {
+    id: 11,
+    name: "Eggs (12 pcs)",
+    price: 90,
+    image: "/eggs.png",
+    stock: 5,
+    category: "Eggs",
+    popular: true,
+    description: "Farm fresh eggs, 12 pieces"
+  },
+  {
+    id: 12,
+    name: "Eggs (30 pcs)",
+    price: 200,
+    image: "/eggs.png",
+    stock: 8,
+    category: "Eggs",
+    description: "Farm fresh eggs, 30 pieces"
+  },
+
+  // ================= VEGETABLES =================
+  {
+    id: 13,
+    name: "Tomatoes 1kg",
+    price: 40,
+    image: "/Tomatoes.png",
+    stock: 15,
+    category: "Vegetables",
+    description: "Fresh red tomatoes"
+  },
+  {
+    id: 14,
+    name: "Potatoes 2kg",
+    price: 60,
+    image: "/Potatos.png",
+    stock: 20,
+    category: "Vegetables",
+    description: "Fresh potatoes, 2kg pack"
+  },
+  {
+    id: 15,
+    name: "Onions 2kg",
+    price: 70,
+    image: "/Oninon.png",
+    stock: 12,
+    category: "Vegetables",
+    description: "Fresh onions, 2kg pack"
+  },
+
+  // ================= BEVERAGES =================
+  {
+    id: 16,
+    name: "Coca-Cola 2L",
+    price: 95,
+    image: "/Coca Cola.png",
+    stock: 30,
+    category: "Beverages",
+    description: "Carbonated soft drink, 2 liter"
+  },
+  {
+    id: 17,
+    name: "Pepsi 1.5L",
+    price: 85,
+    image: "/Pepsi.png",
+    stock: 25,
+    category: "Beverages",
+    description: "Carbonated soft drink, 1.5 liter"
+  },
+
+  // ================= STAPLES =================
+  {
+    id: 18,
+    name: "Basmati Rice 5kg",
+    price: 450,
+    image: "/Basmati Rice.png",
+    stock: 15,
+    category: "Staple Foods",
+    description: "Premium basmati rice, 5kg"
+  },
+  {
+    id: 19,
+    name: "Wheat Flour 5kg",
+    price: 280,
+    image: "/flour.png",
+    stock: 10,
+    category: "Staple Foods",
+    description: "Fine wheat flour, 5kg"
+  },
+
+  // ================= ADDITIONAL PRODUCTS =================
+  {
+    id: 20,
+    name: "Regular Bread",
+    price: 30,
+    image: "/bread.png",
+    stock: 25,
+    category: "Bakery",
+    description: "Regular sandwich bread"
+  },
+  {
+    id: 21,
+    name: "Potato Chips",
+    price: 35,
+    image: "/chips.png",
+    stock: 22,
+    category: "Snacks",
+    description: "Classic salted potato chips"
+  },
+  {
+    id: 22,
+    name: "Coca-Cola Can",
+    price: 45,
+    image: "/coke.png",
+    stock: 40,
+    category: "Beverages",
+    description: "330ml can, chilled"
+  },
+  {
+    id: 23,
+    name: "Assorted Vegetables",
+    price: 150,
+    image: "/veggies.png",
+    stock: 10,
+    category: "Vegetables",
+    description: "Fresh vegetable combo pack"
+  },
+  {
+    id: 24,
+    name: "Regular Rice 5kg",
+    price: 350,
+    image: "/rice.png",
+    stock: 18,
+    category: "Staple Foods",
+    description: "Regular rice, 5kg pack"
+  }
+];
+
+export default products;
+
+
+====================================================
+TESTING OBJECTIVES (MANDATORY)
+====================================================
+Generate unit tests using:
+- Jest
+- React Testing Library
+
+Tests MUST include:
+1. Component renders without crashing
+2. State initialization and updates
+3. Side effects triggered by useEffect
+4. Conditional rendering paths
+5. Loader and error states
+6. User interaction handling
+7. Boundary conditions (empty, null, undefined)
+8. Dependency mocking
+9. Edge cases inferred from risk areas
+
+====================================================
+TESTING RULES (STRICT)
+====================================================
+- Use screen.getByRole / getByText / findBy*
+- Avoid implementation details
+- Do NOT snapshot test unless required
+- Mock external hooks and APIs
+- Tests must be deterministic
+- Prefer userEvent over fireEvent
+
+====================================================
+OUTPUT FORMAT
+====================================================
+- Output ONLY valid JavaScript test code
+- No explanations
+- No markdown
+- No comments outside test code
+- Single test file
+====================================
+📦 FULL SOURCE CODE CONTEXT
+====================================
+
+------------------------------------
+📄 FILE: src/components/CheckoutSummaryTest.jsx
+------------------------------------
+import React, { useMemo } from "react";
+
+// Custom hooks
+import useCart from "../hooks/useCart";
+import useWishlist from "../hooks/useWishlist";
+
+// Child components
+import PriceFilter from "./PriceFilter";
+import Coupon from "./Coupon";
+import DeliverySlot from "./DeliverySlot";
+import PeakTime from "./PeakTime";
+import StockLabel from "./StockLabel";
+
+/**
+ * CheckoutSummaryTest
+ * This component is ONLY for testing schema extraction (Step 1–3)
+ */
+export default function CheckoutSummaryTest({ showPeakTime = true }) {
+  const { cartItems, totalPrice } = useCart();
+  const { wishlist } = useWishlist();
+
+  const itemCount = useMemo(() => {
+    return cartItems.reduce((count, item) => count + item.quantity, 0);
+  }, [cartItems]);
+
+  return (
+    <div style={{ border: "1px solid #ddd", padding: "16px" }}>
+      <h2>Checkout Summary</h2>
+
+      <p>
+        🛒 Items in Cart: <strong>{itemCount}</strong>
+      </p>
+
+      <p>
+        💰 Total Price: <strong>₹{totalPrice}</strong>
+      </p>
+
+      <StockLabel inStock={cartItems.length > 0} />
+
+      <PriceFilter />
+
+      <Coupon />
+
+      <DeliverySlot />
+
+      {showPeakTime && <PeakTime />}
+
+      <p>
+        ❤️ Wishlist Items: <strong>{wishlist.length}</strong>
+      </p>
+    </div>
+  );
+}
+
+
+------------------------------------
+📄 FILE: src/components/OrderActionPanel.jsx
+------------------------------------
+import { useState, useEffect } from "react";
+import Cart from "./Cart";
+import Coupon from "./Coupon";
+import DeliverySlot from "./DeliverySlot";
+import useCart from "../hooks/useCart";
+
+/**
+ * OrderActionPanel
+ * - Controls checkout actions
+ * - Shows loader, error, conditional UI
+ * - Uses custom hook + child components
+ */
+
+export default function OrderActionPanel({ userId }) {
+  const { items, totalPrice } = useCart(userId);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showSummary, setShowSummary] = useState(false);
+
+  useEffect(() => {
+    if (!userId) {
+      setError("User not logged in");
+      setLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [userId]);
+
+  if (loading) {
+    return <div>Loading order actions...</div>;
+  }
+
+  if (error) {
+    return <div role="alert">{error}</div>;
+  }
+
+  return (
+    <section>
+      <h2>Order Actions</h2>
+
+      {items.length === 0 ? (
+        <p>Your cart is empty</p>
+      ) : (
+        <>
+          <Cart />
+          <Coupon />
+          <DeliverySlot />
+
+          <p>Total: ₹{totalPrice}</p>
+
+          <button onClick={() => setShowSummary(true)}>
+            Review Order
+          </button>
+        </>
+      )}
+
+      {showSummary && (
+        <div>
+          <h3>Order Summary</h3>
+          <p>Items: {items.length}</p>
+          <button onClick={() => setShowSummary(false)}>
+            Close
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+
+------------------------------------
+📄 FILE: src/components/OrderSummaryTest.jsx
+------------------------------------
+import { useState, useEffect } from "react";
+
+import Cart from "./Cart";
+import Coupon from "./Coupon";
+import Skeleton from "./Skeleton";
+
+import { useCart } from "../hooks/useCart";
+import products from "../data/products";
+
+export default function OrderSummaryTest() {
+  // ===============================
+  // STATE
+  // ===============================
+  const [loading, setLoading] = useState(true);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // ===============================
+  // CUSTOM HOOK
+  // ===============================
+  const { cartItems } = useCart();
+
+  // ===============================
+  // SIDE EFFECT
+  // ===============================
+  useEffect(() => {
+    // simulate API / calculation delay
+    setTimeout(() => {
+      const total = cartItems.reduce(
+        (sum, item) => sum + item.price,
+        0
+      );
+      setTotalPrice(total);
+      setLoading(false);
+    }, 500);
+  }, [cartItems]);
+
+  // ===============================
+  // CONDITIONAL RENDERING
+  // ===============================
+  if (loading) {
+    return <Skeleton />;
+  }
+
+  return (
+    <div>
+      <h2>🧾 Order Summary</h2>
+
+      {/* LIST RENDERING */}
+      {products.length === 0 ? (
+        <p>No products available</p>
+      ) : (
+        products.map((product) => (
+          <div key={product.id}>
+            <span>{product.name}</span>
+          </div>
+        ))
+      )}
+
+      {/* CHILD COMPONENTS */}
+      <Cart />
+      <Coupon />
+
+      {/* USER INTERACTION */}
+      <button onClick={() => alert("Order Placed!")}>
+        Place Order ₹{totalPrice}
+      </button>
+    </div>
+  );
+}
+
