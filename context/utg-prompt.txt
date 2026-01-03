@@ -810,3 +810,217 @@ OUTPUT FORMAT
 - No markdown
 - No comments outside test code
 - Single test file
+====================================
+📦 FULL SOURCE CODE CONTEXT
+====================================
+
+------------------------------------
+📄 FILE: src/components/CheckoutSummaryTest.jsx
+------------------------------------
+import React, { useMemo } from "react";
+
+// Custom hooks
+import useCart from "../hooks/useCart";
+import useWishlist from "../hooks/useWishlist";
+
+// Child components
+import PriceFilter from "./PriceFilter";
+import Coupon from "./Coupon";
+import DeliverySlot from "./DeliverySlot";
+import PeakTime from "./PeakTime";
+import StockLabel from "./StockLabel";
+
+/**
+ * CheckoutSummaryTest
+ * This component is ONLY for testing schema extraction (Step 1–3)
+ */
+export default function CheckoutSummaryTest({ showPeakTime = true }) {
+  const { cartItems, totalPrice } = useCart();
+  const { wishlist } = useWishlist();
+
+  const itemCount = useMemo(() => {
+    return cartItems.reduce((count, item) => count + item.quantity, 0);
+  }, [cartItems]);
+
+  return (
+    <div style={{ border: "1px solid #ddd", padding: "16px" }}>
+      <h2>Checkout Summary</h2>
+
+      <p>
+        🛒 Items in Cart: <strong>{itemCount}</strong>
+      </p>
+
+      <p>
+        💰 Total Price: <strong>₹{totalPrice}</strong>
+      </p>
+
+      <StockLabel inStock={cartItems.length > 0} />
+
+      <PriceFilter />
+
+      <Coupon />
+
+      <DeliverySlot />
+
+      {showPeakTime && <PeakTime />}
+
+      <p>
+        ❤️ Wishlist Items: <strong>{wishlist.length}</strong>
+      </p>
+    </div>
+  );
+}
+
+
+------------------------------------
+📄 FILE: src/components/OrderActionPanel.jsx
+------------------------------------
+import { useState, useEffect } from "react";
+import Cart from "./Cart";
+import Coupon from "./Coupon";
+import DeliverySlot from "./DeliverySlot";
+import useCart from "../hooks/useCart";
+
+/**
+ * OrderActionPanel
+ * - Controls checkout actions
+ * - Shows loader, error, conditional UI
+ * - Uses custom hook + child components
+ */
+
+export default function OrderActionPanel({ userId }) {
+  const { items, totalPrice } = useCart(userId);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showSummary, setShowSummary] = useState(false);
+
+  useEffect(() => {
+    if (!userId) {
+      setError("User not logged in");
+      setLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [userId]);
+
+  if (loading) {
+    return <div>Loading order actions...</div>;
+  }
+
+  if (error) {
+    return <div role="alert">{error}</div>;
+  }
+
+  return (
+    <section>
+      <h2>Order Actions</h2>
+
+      {items.length === 0 ? (
+        <p>Your cart is empty</p>
+      ) : (
+        <>
+          <Cart />
+          <Coupon />
+          <DeliverySlot />
+
+          <p>Total: ₹{totalPrice}</p>
+
+          <button onClick={() => setShowSummary(true)}>
+            Review Order
+          </button>
+        </>
+      )}
+
+      {showSummary && (
+        <div>
+          <h3>Order Summary</h3>
+          <p>Items: {items.length}</p>
+          <button onClick={() => setShowSummary(false)}>
+            Close
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+
+------------------------------------
+📄 FILE: src/components/OrderSummaryTest.jsx
+------------------------------------
+import { useState, useEffect } from "react";
+
+import Cart from "./Cart";
+import Coupon from "./Coupon";
+import Skeleton from "./Skeleton";
+
+import { useCart } from "../hooks/useCart";
+import products from "../data/products";
+
+export default function OrderSummaryTest() {
+  // ===============================
+  // STATE
+  // ===============================
+  const [loading, setLoading] = useState(true);
+  const [totalPrice, setTotalPrice] = useState(0);
+
+  // ===============================
+  // CUSTOM HOOK
+  // ===============================
+  const { cartItems } = useCart();
+
+  // ===============================
+  // SIDE EFFECT
+  // ===============================
+  useEffect(() => {
+    // simulate API / calculation delay
+    setTimeout(() => {
+      const total = cartItems.reduce(
+        (sum, item) => sum + item.price,
+        0
+      );
+      setTotalPrice(total);
+      setLoading(false);
+    }, 500);
+  }, [cartItems]);
+
+  // ===============================
+  // CONDITIONAL RENDERING
+  // ===============================
+  if (loading) {
+    return <Skeleton />;
+  }
+
+  return (
+    <div>
+      <h2>🧾 Order Summary</h2>
+
+      {/* LIST RENDERING */}
+      {products.length === 0 ? (
+        <p>No products available</p>
+      ) : (
+        products.map((product) => (
+          <div key={product.id}>
+            <span>{product.name}</span>
+          </div>
+        ))
+      )}
+
+      {/* CHILD COMPONENTS */}
+      <Cart />
+      <Coupon />
+
+      {/* USER INTERACTION */}
+      <button onClick={() => alert("Order Placed!")}>
+        Place Order ₹{totalPrice}
+      </button>
+    </div>
+  );
+}
+
